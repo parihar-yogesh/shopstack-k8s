@@ -1,5 +1,6 @@
 import { buildApp } from './app.js';
 import { loadConfig } from './config.js';
+import { ProductsClient } from './catalog/client.js';
 import { createPool } from './db.js';
 
 const config = loadConfig();
@@ -9,6 +10,7 @@ const app = await buildApp({
   pool,
   jwtSecret: config.jwtSecret,
   cookieSecure: config.cookieSecure,
+  catalog: new ProductsClient(config.productsServiceUrl),
 });
 
 try {

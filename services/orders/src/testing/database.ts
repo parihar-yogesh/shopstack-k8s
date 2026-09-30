@@ -12,3 +12,8 @@ export function createTestPool(): Pool {
 export async function resetUsers(pool: Pool): Promise<void> {
   await pool.query('TRUNCATE users CASCADE');
 }
+
+export async function countOrders(pool: Pool): Promise<number> {
+  const result = await pool.query<{ count: string }>('SELECT count(*) AS count FROM orders');
+  return Number(result.rows[0]?.count ?? 0);
+}

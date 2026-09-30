@@ -5,6 +5,7 @@ export interface Config {
   databaseUrl: string;
   jwtSecret: string;
   cookieSecure: boolean;
+  productsServiceUrl: string;
 }
 
 function required(name: string): string {
@@ -23,5 +24,6 @@ export function loadConfig(): Config {
     databaseUrl: required('DATABASE_URL'),
     jwtSecret: required('JWT_SECRET'),
     cookieSecure: process.env.COOKIE_SECURE !== 'false',
+    productsServiceUrl: required('PRODUCTS_SERVICE_URL'),
   };
 }

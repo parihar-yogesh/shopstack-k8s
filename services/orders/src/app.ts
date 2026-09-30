@@ -5,6 +5,9 @@ import rateLimit from '@fastify/rate-limit';
 import Fastify, { type FastifyInstance, type FastifyReply, type FastifyRequest } from 'fastify';
 import type { Pool } from 'pg';
 import { registerAuthRoutes, SESSION_COOKIE } from './auth/routes.js';
+import type { ProductCatalog } from './catalog/client.js';
+import { OrderRepository } from './orders/repository.js';
+import { registerOrderRoutes } from './orders/routes.js';
 import { UserRepository } from './users/repository.js';
 
 declare module 'fastify' {
@@ -25,6 +28,7 @@ export interface AppOptions {
   pool: Pool;
   jwtSecret: string;
   cookieSecure: boolean;
+  catalog: ProductCatalog;
 }
 
 export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
@@ -70,6 +74,7 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
   });
 
   registerAuthRoutes(app, new UserRepository(options.pool), options.cookieSecure);
+  registerOrderRoutes(app, new OrderRepository(options.pool), options.catalog);
 
   return app;
 }

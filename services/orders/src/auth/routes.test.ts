@@ -4,6 +4,7 @@ import type { FastifyInstance } from 'fastify';
 import type { Pool } from 'pg';
 import { buildApp } from '../app.js';
 import { createTestPool, resetUsers } from '../testing/database.js';
+import { StubCatalog } from '../testing/catalog.js';
 
 const EMAIL = 'buyer@example.com';
 const PASSWORD = 'a-sufficiently-long-password';
@@ -18,6 +19,7 @@ before(async () => {
     pool,
     jwtSecret: 'test-secret',
     cookieSecure: false,
+    catalog: new StubCatalog(),
   });
   await app.ready();
 });
