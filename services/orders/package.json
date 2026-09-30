@@ -6,7 +6,7 @@
   "engines": {
     "node": ">=24"
   },
-  "scripts": {
+    "scripts": {
     "dev": "tsx watch --env-file-if-exists=../../.env src/server.ts",
     "build": "tsc -p tsconfig.build.json",
     "start": "node dist/server.js",
@@ -14,7 +14,7 @@
     "migrate": "node --env-file-if-exists=../../.env node_modules/node-pg-migrate/bin/node-pg-migrate.js -t pgmigrations_orders",
     "migrate:test": "node --env-file-if-exists=../../.env node_modules/node-pg-migrate/bin/node-pg-migrate.js -t pgmigrations_orders -d TEST_DATABASE_URL",
     "pretest": "npm run migrate:test up",
-    "test": "tsx --env-file-if-exists=../../.env --test \"src/**/*.test.ts\""
+    "test": "tsx --env-file-if-exists=../../.env --test --test-concurrency=1 \"src/**/*.test.ts\""
   },
   "dependencies": {
     "@fastify/cookie": "11.1.2",
