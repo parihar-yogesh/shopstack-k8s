@@ -188,3 +188,117 @@ describe('POST /orders', () => {
     assert.equal(await countOrders(pool), 0);
   });
 });
+
+describe('GET /orders', () => {
+  async function get(url: string, cookie = session) {
+    return app.inject({ method: 'GET', url, headers: { cookie } });
+  }
+
+  it('returns only the signed-in user\'s orders, newest first', async () => {
+    await placeOrder([{ productId: '1', quantity: 1 }]);
+    await placeOrder([{ productId: '2', quantity: 1 }]);
+
+    const response = await get('/orders');
+
+    assert.equal(response.statusCode, 200);
+    const body = response.json();
+    assert.equal(body.total, 2);
+    assert.equal(body.items.length, 2);
+    assert.equal(body.items[0].items[0].sku, 'mer-lmp-01', 'most recent order comes first');
+  });
+
+  it('includes the items of every order in the page', async () => {
+    await placeOrder([
+      { productId: '1', quantity: 2 },
+      { productId: '2', quantity: 1 },
+    ]);
+
+    const body = (await get('/orders')).json();
+
+    assert.equal(body.items[0].items.length, 2);
+    assert.equal(body.items[0].totalCents, 12900 * 2 + 6400);
+  });
+
+  it('returns an empty list for a user with no orders', async () => {
+    const body = (await get('/orders')).json();
+
+    assert.deepEqual(body.items, []);
+    assert.equal(body.total, 0);
+  });
+
+  it('paginates', async () => {
+    await placeOrder([{ productId: '1', quantity: 1 }]);
+    await placeOrder([{ productId: '2', quantity: 1 }]);
+
+    const body = (await get('/orders?limit=1&offset=1')).json();
+
+    assert.equal(body.items.length, 1);
+    assert.equal(body.total, 2, 'total counts every order, not the page');
+  });
+
+  it('rejects a signed-out visitor', async () => {
+    const response = await app.inject({ method: 'GET', url: '/orders' });
+
+    assert.equal(response.statusCode, 401);
+  });
+});
+
+describe('GET /orders/:id', () => {
+  it('returns one order with its items', async () => {
+    const placed = (await placeOrder([{ productId: '1', quantity: 3 }])).json().order;
+
+    const response = await app.inject({
+      method: 'GET',
+      url: `/orders/${placed.id}`,
+      headers: { cookie: session },
+    });
+
+    assert.equal(response.statusCode, 200);
+    const { order } = response.json();
+    assert.equal(order.id, placed.id);
+    assert.equal(order.items[0].quantity, 3);
+    assert.equal(order.totalCents, 38700);
+  });
+
+  it('hides another user\'s order behind a 404', async () => {
+    const placed = (await placeOrder([{ productId: '1', quantity: 1 }])).json().order;
+
+    const { token, cookie } = await csrf();
+    const other = await app.inject({
+      method: 'POST',
+      url: '/auth/register',
+      payload: { email: 'someone-else@example.com', password: PASSWORD },
+      headers: { cookie, 'x-csrf-token': token },
+    });
+    const otherSession = other.cookies.find((c) => c.name === 'session');
+    assert.ok(otherSession);
+
+    const response = await app.inject({
+      method: 'GET',
+      url: `/orders/${placed.id}`,
+      headers: { cookie: `session=${otherSession.value}` },
+    });
+
+    assert.equal(response.statusCode, 404, 'must not reveal that the order exists');
+  });
+
+  it('returns 404 for an order that does not exist', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: '/orders/00000000-0000-0000-0000-000000000000',
+      headers: { cookie: session },
+    });
+
+    assert.equal(response.statusCode, 404);
+  });
+
+  it('rejects an id that is not a uuid', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: '/orders/not-a-uuid',
+      headers: { cookie: session },
+    });
+
+    assert.equal(response.statusCode, 400);
+  });
+});

@@ -24,8 +24,35 @@ const placeOrderBody = {
   },
 } as const;
 
+const historyQuerystring = {
+  type: 'object',
+  additionalProperties: false,
+  properties: {
+    limit: { type: 'integer', minimum: 1, maximum: 50, default: 20 },
+    offset: { type: 'integer', minimum: 0, default: 0 },
+  },
+} as const;
+
+const orderIdParams = {
+  type: 'object',
+  required: ['id'],
+  additionalProperties: false,
+  properties: {
+    id: { type: 'string', format: 'uuid' },
+  },
+} as const;
+
 interface PlaceOrderBody {
   items: { productId: string; quantity: number }[];
+}
+
+interface HistoryQuery {
+  limit: number;
+  offset: number;
+}
+
+interface OrderIdParams {
+  id: string;
 }
 
 interface Line {
@@ -106,6 +133,37 @@ export function registerOrderRoutes(
       const order = await repository.create(request.user.sub, lines[0]!.product.currency, items);
 
       return reply.code(201).send({ order });
+    },
+  );
+
+  app.get<{ Querystring: HistoryQuery }>(
+    '/orders',
+    {
+      schema: { querystring: historyQuerystring },
+      onRequest: [app.authenticate],
+    },
+    async (request) => {
+      const { limit, offset } = request.query;
+      const [items, total] = await Promise.all([
+        repository.findByUser(request.user.sub, limit, offset),
+        repository.countByUser(request.user.sub),
+      ]);
+      return { items, total, limit, offset };
+    },
+  );
+
+  app.get<{ Params: OrderIdParams }>(
+    '/orders/:id',
+    {
+      schema: { params: orderIdParams },
+      onRequest: [app.authenticate],
+    },
+    async (request, reply) => {
+      const order = await repository.findByIdForUser(request.params.id, request.user.sub);
+      if (!order) {
+        return reply.code(404).send({ error: 'Not Found', message: 'Order does not exist' });
+      }
+      return { order };
     },
   );
 }
