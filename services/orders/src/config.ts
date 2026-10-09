@@ -6,6 +6,7 @@ export interface Config {
   jwtSecret: string;
   cookieSecure: boolean;
   productsServiceUrl: string;
+  shutdownDelayMs: number;
 }
 
 function required(name: string): string {
@@ -25,5 +26,6 @@ export function loadConfig(): Config {
     jwtSecret: required('JWT_SECRET'),
     cookieSecure: process.env.COOKIE_SECURE !== 'false',
     productsServiceUrl: required('PRODUCTS_SERVICE_URL'),
+    shutdownDelayMs: Number(process.env.SHUTDOWN_DELAY_MS ?? 0),
   };
 }

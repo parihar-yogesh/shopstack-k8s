@@ -3,6 +3,7 @@ export interface Config {
   host: string;
   logLevel: string;
   databaseUrl: string;
+  shutdownDelayMs: number;
 }
 
 function required(name: string): string {
@@ -19,5 +20,6 @@ export function loadConfig(): Config {
     host: process.env.HOST ?? '127.0.0.1',
     logLevel: process.env.LOG_LEVEL ?? 'info',
     databaseUrl: required('DATABASE_URL'),
+    shutdownDelayMs: Number(process.env.SHUTDOWN_DELAY_MS ?? 0),
   };
 }
