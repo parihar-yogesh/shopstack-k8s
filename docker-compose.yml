@@ -20,5 +20,66 @@ services:
       timeout: 5s
       retries: 10
 
+  products-init:
+    build: ./services/products
+    image: shopstack/products:dev
+    command: ["sh", "-c", "node node_modules/node-pg-migrate/bin/node-pg-migrate.js -t pgmigrations_products --advisory-lock-mode wait up && node dist/seed.js"]
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  products:
+    build: ./services/products
+    image: shopstack/products:dev
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      HOST: 0.0.0.0
+      PORT: "3000"
+    ports:
+      - "127.0.0.1:3000:3000"
+    depends_on:
+      products-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/ready').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  orders-init:
+    build: ./services/orders
+    image: shopstack/orders:dev
+    command: ["node", "node_modules/node-pg-migrate/bin/node-pg-migrate.js", "-t", "pgmigrations_orders", "--advisory-lock-mode", "wait", "up"]
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  orders:
+    build: ./services/orders
+    image: shopstack/orders:dev
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      PRODUCTS_SERVICE_URL: http://products:3000
+      JWT_SECRET: ${JWT_SECRET:?required}
+      COOKIE_SECURE: "false"
+      HOST: 0.0.0.0
+      PORT: "3001"
+    ports:
+      - "127.0.0.1:3001:3001"
+    depends_on:
+      orders-init:
+        condition: service_completed_successfully
+      products:
+        condition: service_healthy
+
 volumes:
   postgres-data:
