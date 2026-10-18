@@ -1,16 +1,14 @@
 import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { useCart } from '../cart/useCart';
 import { ApiError, getProduct } from '../lib/api';
 import { formatPrice } from '../lib/money';
 
-function stockLabel(stock: number): string {
-  if (stock === 0) return 'Sold out';
-  if (stock <= 5) return `Only ${stock} left`;
-  return 'In stock';
-}
-
 export function ProductPage() {
   const { id } = useParams();
+  const { dispatch } = useCart();
+  const [added, setAdded] = useState(false);
 
   const { data, isPending, error } = useQuery({
     queryKey: ['product', id],
@@ -38,6 +36,13 @@ export function ProductPage() {
       </section>
     );
   }
+
+  function addToCart(productId: string) {
+    dispatch({ type: 'add', productId, quantity: 1 });
+    setAdded(true);
+  }
+
+  const soldOut = !isPending && data.stock === 0;
 
   return (
     <article>
@@ -69,11 +74,31 @@ export function ProductPage() {
 
             <p className="mt-6 leading-relaxed text-stone-600">{data.description}</p>
 
+            <div className="mt-8">
+              <button
+                type="button"
+                disabled={soldOut}
+                onClick={() => addToCart(data.id)}
+                className="w-full rounded-md bg-stone-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-stone-800 disabled:cursor-not-allowed disabled:bg-stone-300 sm:w-auto sm:px-8"
+              >
+                {soldOut ? 'Sold out' : 'Add to cart'}
+              </button>
+
+              {added && !soldOut && (
+                <p className="mt-3 text-sm text-stone-600">
+                  Added.{' '}
+                  <Link to="/cart" className="text-stone-900 underline underline-offset-4">
+                    View cart
+                  </Link>
+                </p>
+              )}
+            </div>
+
             <dl className="mt-8 space-y-2 border-t border-stone-200 pt-6 text-sm">
               <div className="flex gap-3">
                 <dt className="w-24 shrink-0 text-stone-500">Availability</dt>
-                <dd className={data.stock === 0 ? 'text-stone-500' : 'text-stone-900'}>
-                  {stockLabel(data.stock)}
+                <dd className={soldOut ? 'text-stone-500' : 'text-stone-900'}>
+                  {soldOut ? 'Sold out' : 'In stock'}
                 </dd>
               </div>
               <div className="flex gap-3">

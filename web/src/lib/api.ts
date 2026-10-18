@@ -117,3 +117,38 @@ export async function login(email: string, password: string): Promise<User> {
 export function logout(): Promise<void> {
   return post<void>('/api/auth/logout');
 }
+
+export interface OrderItem {
+  productId: string;
+  sku: string;
+  name: string;
+  unitPriceCents: number;
+  quantity: number;
+  lineTotalCents: number;
+}
+
+export interface Order {
+  id: string;
+  status: string;
+  totalCents: number;
+  currency: string;
+  createdAt: string;
+  items: OrderItem[];
+}
+
+interface OrderPage {
+  items: Order[];
+  total: number;
+}
+
+export async function placeOrder(items: { productId: string; quantity: number }[]): Promise<Order> {
+  return (await post<{ order: Order }>('/api/orders', { items })).order;
+}
+
+export function listOrders(): Promise<OrderPage> {
+  return get<OrderPage>('/api/orders?limit=50');
+}
+
+export async function getOrder(id: string): Promise<Order> {
+  return (await get<{ order: Order }>(`/api/orders/${id}`)).order;
+}

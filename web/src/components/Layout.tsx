@@ -1,7 +1,12 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Link, Outlet } from 'react-router-dom';
+import { Link, NavLink, Outlet } from 'react-router-dom';
 import { CURRENT_USER_KEY, useCurrentUser } from '../auth/useCurrentUser';
+import { useCart } from '../cart/useCart';
 import { logout } from '../lib/api';
+
+function navClass({ isActive }: { isActive: boolean }): string {
+  return isActive ? 'text-stone-900' : 'text-stone-600 hover:text-stone-900';
+}
 
 function AccountNav() {
   const { data: user, isPending } = useCurrentUser();
@@ -9,7 +14,11 @@ function AccountNav() {
 
   const signOut = useMutation({
     mutationFn: logout,
-    onSuccess: () => queryClient.setQueryData(CURRENT_USER_KEY, null),
+    onSuccess: () => {
+      queryClient.setQueryData(CURRENT_USER_KEY, null);
+      // Order history belongs to the account that just left.
+      void queryClient.removeQueries({ queryKey: ['orders'] });
+    },
   });
 
   if (isPending) {
@@ -18,15 +27,18 @@ function AccountNav() {
 
   if (!user) {
     return (
-      <Link to="/sign-in" className="text-sm text-stone-600 hover:text-stone-900">
+      <NavLink to="/sign-in" className={navClass}>
         Sign in
-      </Link>
+      </NavLink>
     );
   }
 
   return (
-    <div className="flex items-center gap-4 text-sm">
-      <span className="hidden text-stone-500 sm:inline">{user.email}</span>
+    <>
+      <span className="hidden text-stone-400 lg:inline">{user.email}</span>
+      <NavLink to="/orders" className={navClass}>
+        Orders
+      </NavLink>
       <button
         type="button"
         onClick={() => signOut.mutate()}
@@ -35,7 +47,18 @@ function AccountNav() {
       >
         Sign out
       </button>
-    </div>
+    </>
+  );
+}
+
+function CartLink() {
+  const { items } = useCart();
+  const count = items.reduce((total, item) => total + item.quantity, 0);
+
+  return (
+    <NavLink to="/cart" className={navClass}>
+      Cart{count > 0 && <span className="ml-1 tabular-nums">({count})</span>}
+    </NavLink>
   );
 }
 
@@ -47,7 +70,10 @@ export function Layout() {
           <Link to="/" className="text-lg font-semibold tracking-tight">
             ShopStack
           </Link>
-          <AccountNav />
+          <nav className="flex items-center gap-5 text-sm">
+            <AccountNav />
+            <CartLink />
+          </nav>
         </div>
       </header>
 
