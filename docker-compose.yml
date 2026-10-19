@@ -81,5 +81,19 @@ services:
       products:
         condition: service_healthy
 
+  web:
+    build: ./web
+    image: shopstack/web:dev
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8080:8080"
+    # nginx resolves both upstream hostnames when it starts, so it must not
+    # start before they exist.
+    depends_on:
+      products:
+        condition: service_healthy
+      orders:
+        condition: service_started
+
 volumes:
   postgres-data:
