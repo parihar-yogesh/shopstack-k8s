@@ -1,0 +1,99 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: orders
+  labels:
+    {{- include "shopstack.labels" . | nindent 4 }}
+    app.kubernetes.io/component: orders
+spec:
+  replicas: {{ .Values.orders.replicas }}
+  selector:
+    matchLabels:
+      {{- include "shopstack.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: orders
+  template:
+    metadata:
+      labels:
+        {{- include "shopstack.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: orders
+    spec:
+      initContainers:
+        - name: migrate
+          image: {{ .Values.orders.image }}
+          command:
+            - node
+            - node_modules/node-pg-migrate/bin/node-pg-migrate.js
+            - -t
+            - pgmigrations_orders
+            - --advisory-lock-mode
+            - wait
+            - up
+          env:
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secretName }}
+                  key: POSTGRES_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secretName }}
+                  key: POSTGRES_PASSWORD
+            - name: POSTGRES_DB
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secretName }}
+                  key: POSTGRES_DB
+            - name: DATABASE_URL
+              value: postgres://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@postgres:5432/$(POSTGRES_DB)
+      containers:
+        - name: orders
+          image: {{ .Values.orders.image }}
+          ports:
+            - name: http
+              containerPort: 3001
+          env:
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secretName }}
+                  key: POSTGRES_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secretName }}
+                  key: POSTGRES_PASSWORD
+            - name: POSTGRES_DB
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secretName }}
+                  key: POSTGRES_DB
+            - name: DATABASE_URL
+              value: postgres://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@postgres:5432/$(POSTGRES_DB)
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secretName }}
+                  key: JWT_SECRET
+            - name: PRODUCTS_SERVICE_URL
+              value: "http://products:3000"
+            - name: COOKIE_SECURE
+              value: {{ .Values.orders.cookieSecure | quote }}
+            - name: HOST
+              value: 0.0.0.0
+            - name: PORT
+              value: "3001"
+            - name: LOG_LEVEL
+              value: {{ .Values.orders.logLevel }}
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: http
+            initialDelaySeconds: 3
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
