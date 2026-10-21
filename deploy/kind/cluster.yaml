@@ -5,9 +5,12 @@ nodes:
   - role: control-plane
     image: kindest/node:v1.35.0
     extraPortMappings:
-      - containerPort: 80
+      # These must match the nodePorts given to NGINX Gateway Fabric at install
+      # time. NGF runs as a NodePort service, so the node never listens on
+      # 80 and 443 itself.
+      - containerPort: 31437
         hostPort: 80
         protocol: TCP
-      - containerPort: 443
+      - containerPort: 30478
         hostPort: 443
         protocol: TCP

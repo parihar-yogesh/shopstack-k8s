@@ -1,0 +1,5 @@
+# kind serves the site over plain http. A cookie marked Secure is silently
+# dropped by the browser on http://, so sign-in would appear to succeed and
+# then fail on the very next request.
+orders:
+  cookieSecure: false
