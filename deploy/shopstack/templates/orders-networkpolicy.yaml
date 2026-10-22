@@ -1,0 +1,25 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: orders
+  labels:
+    {{- include "shopstack.labels" . | nindent 4 }}
+    app.kubernetes.io/component: orders
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "shopstack.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: orders
+  policyTypes:
+    - Ingress
+  # Only the frontend reaches orders, proxying /api/orders and /api/auth.
+  # Products never calls orders; the dependency runs the other way.
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              {{- include "shopstack.selectorLabels" . | nindent 14 }}
+              app.kubernetes.io/component: web
+      ports:
+        - protocol: TCP
+          port: 3001

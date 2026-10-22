@@ -1,0 +1,25 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: web
+  labels:
+    {{- include "shopstack.labels" . | nindent 4 }}
+    app.kubernetes.io/component: web
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "shopstack.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: web
+  policyTypes:
+    - Ingress
+  # NGINX Gateway Fabric provisions a data plane pod per Gateway and labels it
+  # with that Gateway's name. Those labels are NGF's convention, not this
+  # chart's, so they will not follow a rename here.
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              gateway.networking.k8s.io/gateway-name: shopstack
+      ports:
+        - protocol: TCP
+          port: 8080

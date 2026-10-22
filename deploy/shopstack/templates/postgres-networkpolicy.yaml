@@ -1,0 +1,29 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: postgres
+  labels:
+    {{- include "shopstack.labels" . | nindent 4 }}
+    app.kubernetes.io/component: postgres
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "shopstack.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: postgres
+  policyTypes:
+    - Ingress
+  # Only the two services that own data here may connect. The web pod faces the
+  # internet and has no reason to reach the database at all.
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              {{- include "shopstack.selectorLabels" . | nindent 14 }}
+              app.kubernetes.io/component: products
+        - podSelector:
+            matchLabels:
+              {{- include "shopstack.selectorLabels" . | nindent 14 }}
+              app.kubernetes.io/component: orders
+      ports:
+        - protocol: TCP
+          port: 5432

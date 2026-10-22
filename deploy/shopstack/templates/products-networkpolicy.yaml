@@ -1,0 +1,29 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: products
+  labels:
+    {{- include "shopstack.labels" . | nindent 4 }}
+    app.kubernetes.io/component: products
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "shopstack.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: products
+  policyTypes:
+    - Ingress
+  # The frontend proxies /api/products here, and orders calls it to price a
+  # basket. Nothing else has a reason to.
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              {{- include "shopstack.selectorLabels" . | nindent 14 }}
+              app.kubernetes.io/component: web
+        - podSelector:
+            matchLabels:
+              {{- include "shopstack.selectorLabels" . | nindent 14 }}
+              app.kubernetes.io/component: orders
+      ports:
+        - protocol: TCP
+          port: 3000
