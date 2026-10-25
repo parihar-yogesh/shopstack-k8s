@@ -18,6 +18,14 @@ spec:
         app.kubernetes.io/component: products
     spec:
       initContainers:
+        # Without this the migration below races Postgres on a cold start and
+        # fails until Kubernetes has restarted it a few times.
+        - name: wait-for-db
+          image: {{ .Values.postgres.image }}
+          command:
+            - sh
+            - -c
+            - until pg_isready -h postgres -p 5432; do sleep 1; done
         - name: migrate
           image: {{ .Values.products.image }}
           command:
