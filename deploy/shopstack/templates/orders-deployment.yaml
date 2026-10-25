@@ -17,6 +17,10 @@ spec:
         {{- include "shopstack.selectorLabels" . | nindent 8 }}
         app.kubernetes.io/component: orders
     spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
       initContainers:
         # Without this the migration below races Postgres on a cold start and
         # fails until Kubernetes has restarted it a few times.
@@ -25,7 +29,9 @@ spec:
           command:
             - sh
             - -c
-            - until pg_isready -h postgres -p 5432; do sleep 1; done
+            - until pg_isready -h postgres -p 5432 -U postgres; do sleep 1; done
+          securityContext:
+            {{- include "shopstack.containerSecurityContext" . | nindent 12 }}
         - name: migrate
           image: {{ .Values.orders.image }}
           command:
@@ -54,6 +60,8 @@ spec:
                   key: POSTGRES_DB
             - name: DATABASE_URL
               value: postgres://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@postgres:5432/$(POSTGRES_DB)
+          securityContext:
+            {{- include "shopstack.containerSecurityContext" . | nindent 12 }}
       containers:
         - name: orders
           image: {{ .Values.orders.image }}
@@ -107,3 +115,5 @@ spec:
             periodSeconds: 10
           resources:
             {{- toYaml .Values.orders.resources | nindent 12 }}
+          securityContext:
+            {{- include "shopstack.containerSecurityContext" . | nindent 12 }}
