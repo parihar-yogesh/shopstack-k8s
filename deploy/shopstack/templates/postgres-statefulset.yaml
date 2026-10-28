@@ -18,6 +18,7 @@ spec:
         {{- include "shopstack.selectorLabels" . | nindent 8 }}
         app.kubernetes.io/component: postgres
     spec:
+      serviceAccountName: postgres
       # 70 is the postgres user in the Alpine image. The Debian variants use
       # 999, which is a common and silent source of permission errors.
       securityContext:

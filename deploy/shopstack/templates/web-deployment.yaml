@@ -17,6 +17,7 @@ spec:
         {{- include "shopstack.selectorLabels" . | nindent 8 }}
         app.kubernetes.io/component: web
     spec:
+      serviceAccountName: web
       securityContext:
         runAsNonRoot: true
         runAsUser: 101
