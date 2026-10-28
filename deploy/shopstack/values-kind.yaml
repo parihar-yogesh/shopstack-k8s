@@ -1,5 +1,9 @@
-# kind serves the site over plain http. A cookie marked Secure is silently
-# dropped by the browser on http://, so sign-in would appear to succeed and
-# then fail on the very next request.
+# kind serves plain http, and browsers silently drop a Secure cookie on http://,
+# so sign-in would appear to succeed and then fail.
 orders:
   cookieSecure: false
+
+# The certificate here is self-signed, so forcing https would put a browser
+# warning in front of every page, including the demo screenshots.
+gateway:
+  redirectToHttps: false

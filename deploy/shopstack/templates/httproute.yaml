@@ -7,7 +7,11 @@ metadata:
 spec:
   parentRefs:
     - name: shopstack
+      sectionName: https
+    {{- if not .Values.gateway.redirectToHttps }}
+    - name: shopstack
       sectionName: http
+    {{- end }}
   hostnames:
     - {{ .Values.gateway.hostname | quote }}
   rules:
@@ -18,3 +22,24 @@ spec:
       backendRefs:
         - name: web
           port: 80
+{{- if .Values.gateway.redirectToHttps }}
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: redirect-to-https
+  labels:
+    {{- include "shopstack.labels" . | nindent 4 }}
+spec:
+  parentRefs:
+    - name: shopstack
+      sectionName: http
+  hostnames:
+    - {{ .Values.gateway.hostname | quote }}
+  rules:
+    - filters:
+        - type: RequestRedirect
+          requestRedirect:
+            scheme: https
+            statusCode: 301
+{{- end }}

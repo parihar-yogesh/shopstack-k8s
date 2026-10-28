@@ -14,3 +14,15 @@ spec:
       allowedRoutes:
         namespaces:
           from: Same
+    - name: https
+      protocol: HTTPS
+      port: 443
+      hostname: {{ .Values.gateway.hostname | quote }}
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - kind: Secret
+            name: {{ .Values.gateway.tlsSecretName }}
+      allowedRoutes:
+        namespaces:
+          from: Same
