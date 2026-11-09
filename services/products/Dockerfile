@@ -14,6 +14,9 @@ RUN npm ci --omit=dev
 FROM node:24.21.0-alpine3.24
 ENV NODE_ENV=production
 WORKDIR /app
+# Alpine ships package fixes faster than this image is rebuilt, so the pinned
+# base still carries known-vulnerable libraries until we upgrade them here.
+RUN apk upgrade --no-cache
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
 COPY package.json ./
