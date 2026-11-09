@@ -1,0 +1,34 @@
+version: 2
+updates:
+  # Major versions are deliberately left ungrouped so each one arrives as its
+  # own pull request and gets looked at rather than swept along with the rest.
+  - package-ecosystem: npm
+    directories:
+      - /services/products
+      - /services/orders
+      - /web
+    schedule:
+      interval: weekly
+    groups:
+      npm-minor-and-patch:
+        update-types:
+          - minor
+          - patch
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: docker
+    directories:
+      - /services/products
+      - /services/orders
+      - /web
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns:
+          - "*"
