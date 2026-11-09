@@ -71,6 +71,17 @@ jobs:
       - run: npm run build
         working-directory: web
 
+  chart:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: helm version
+      - run: helm lint deploy/shopstack
+      # Local runs always pass values-kind.yaml, so without the first render the
+      # production path is never exercised by anything.
+      - run: helm template shopstack deploy/shopstack
+      - run: helm template shopstack deploy/shopstack -f deploy/shopstack/values-kind.yaml
+
   scan:
     name: scan ${{ matrix.image }}
     runs-on: ubuntu-latest
