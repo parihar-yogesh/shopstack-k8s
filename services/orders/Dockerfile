@@ -1,4 +1,4 @@
-FROM node:24.21.0-alpine3.24 AS build
+FROM node:26.13.0-alpine3.24 AS build
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
@@ -6,12 +6,12 @@ COPY tsconfig.json tsconfig.build.json ./
 COPY src ./src
 RUN npm run build
 
-FROM node:24.21.0-alpine3.24 AS deps
+FROM node:26.13.0-alpine3.24 AS deps
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev
 
-FROM node:24.21.0-alpine3.24
+FROM node:26.13.0-alpine3.24
 ENV NODE_ENV=production
 WORKDIR /app
 # Alpine ships package fixes faster than this image is rebuilt, so the pinned
