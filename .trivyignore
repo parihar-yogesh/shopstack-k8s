@@ -1,0 +1,9 @@
+# The API endpoint must be reachable from a laptop and from GitHub Actions
+# runners, neither of which has a stable address to allow-list. Access is
+# controlled by IAM authentication and a namespace-scoped access entry.
+AWS-0040
+AWS-0041
+
+# Worker nodes need outbound access to pull container images. Restricting it
+# belongs at the network layer, with an egress proxy or firewall rules.
+AWS-0104

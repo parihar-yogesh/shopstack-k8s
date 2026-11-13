@@ -6,7 +6,6 @@ on:
   pull_request:
 
 # Without this, the automatic token gets write access to the whole repository.
-# Nothing here writes anything back, so it only needs to read the code.
 permissions:
   contents: read
 
@@ -73,14 +72,57 @@ jobs:
 
   chart:
     runs-on: ubuntu-latest
+    # bash so pipefail is set; the default shell reports only the last command's
+    # exit code and would pass a run where helm template failed.
+    defaults:
+      run:
+        shell: bash
+    env:
+      # Must match the cluster version in infra/variables.tf and deploy/kind/cluster.yaml.
+      KUBERNETES_VERSION: 1.35.0
+      CRD_SCHEMAS: https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: helm version
       - run: helm lint deploy/shopstack
-      # Local runs always pass values-kind.yaml, so without the first render the
-      # production path is never exercised by anything.
-      - run: helm template shopstack deploy/shopstack
-      - run: helm template shopstack deploy/shopstack -f deploy/shopstack/values-kind.yaml
+      - run: |
+          curl -sSLo kubeconform.tar.gz https://github.com/yannh/kubeconform/releases/download/v0.8.0/kubeconform-linux-amd64.tar.gz
+          echo "9bc2bffbf71f261128533edaf912153948b7ff238f9a531ae6d34466ec287883  kubeconform.tar.gz" | sha256sum -c -
+          tar -xzf kubeconform.tar.gz kubeconform
+      # Local runs always pass values-kind.yaml, so the production path is only exercised here.
+      - run: |
+          helm template shopstack deploy/shopstack \
+            | ./kubeconform -strict -summary \
+                -kubernetes-version "$KUBERNETES_VERSION" \
+                -schema-location default \
+                -schema-location "$CRD_SCHEMAS" -
+      - run: |
+          helm template shopstack deploy/shopstack -f deploy/shopstack/values-kind.yaml \
+            | ./kubeconform -strict -summary \
+                -kubernetes-version "$KUBERNETES_VERSION" \
+                -schema-location default \
+                -schema-location "$CRD_SCHEMAS" -
+
+  terraform:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: terraform version
+      - run: terraform fmt -check -recursive
+        working-directory: infra
+      # No backend: validation needs no state, and this job has no AWS credentials.
+      - run: terraform init -backend=false
+        working-directory: infra
+      - run: terraform validate
+        working-directory: infra
+      - uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: config
+          scan-ref: infra
+          severity: HIGH,CRITICAL
+          skip-dirs: "**/examples"
+          trivyignores: .trivyignore
+          exit-code: 1
 
   scan:
     name: scan ${{ matrix.image }}
