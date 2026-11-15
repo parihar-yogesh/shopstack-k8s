@@ -1,0 +1,52 @@
+name: deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: Image tag to deploy
+        required: true
+        default: v1
+
+permissions:
+  contents: read
+  # Lets the runner request a GitHub OIDC token to exchange for AWS credentials.
+  id-token: write
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      AWS_REGION: eu-central-1
+      CLUSTER_NAME: shopstack
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - id: aws
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: eu-central-1
+
+      - run: aws eks update-kubeconfig --region "$AWS_REGION" --name "$CLUSTER_NAME"
+
+      - env:
+          TAG: ${{ inputs.image_tag }}
+          ACCOUNT_ID: ${{ steps.aws.outputs.aws-account-id }}
+        run: |
+          registry="${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+          hostname=$(kubectl get gateway shopstack -o jsonpath='{.status.addresses[0].value}')
+          helm upgrade --install shopstack deploy/shopstack \
+            --set products.image="${registry}/shopstack/products:${TAG}" \
+            --set orders.image="${registry}/shopstack/orders:${TAG}" \
+            --set web.image="${registry}/shopstack/web:${TAG}" \
+            --set gateway.redirectToHttps=false \
+            --set orders.cookieSecure=false \
+            --set gateway.hostname="${hostname}" \
+            --wait --timeout 5m
+
+      - run: kubectl get pods
