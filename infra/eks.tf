@@ -46,7 +46,8 @@ module "eks" {
   # Scoped to one namespace: CI deploys the application chart and nothing else.
   access_entries = {
     github_actions = {
-      principal_arn = aws_iam_role.github_actions.arn
+      principal_arn     = aws_iam_role.github_actions.arn
+      kubernetes_groups = ["shopstack-deployers"]
 
       policy_associations = {
         namespace_admin = {
