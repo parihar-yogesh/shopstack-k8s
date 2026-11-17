@@ -26,6 +26,8 @@ kubeconfig.*
 *.tfstate.*
 *.tfvars
 !*.tfvars.example
+tfplan
+*.tfplan
 crash.log
 
 # Logs
