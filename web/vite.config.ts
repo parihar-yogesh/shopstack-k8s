@@ -2,8 +2,7 @@ import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 
-// The /api prefix mirrors the ingress rules the cluster will use, so the
-// browser talks to a single origin in development and in Kubernetes alike.
+// Mirrors the /api rewrites in nginx.conf, which serves this build in the cluster.
 const stripApiPrefix = (path: string) => path.replace(/^\/api/, '');
 
 export default defineConfig({
